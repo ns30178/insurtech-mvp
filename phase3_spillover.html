@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 3: 外溢保單健康變現試算</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .input-group label { display: block; font-size: 0.875rem; font-weight: 600; color: #475569; margin-bottom: 0.25rem; }
+        .input-group input { width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 0.375rem; background-color: #fff; }
+        .input-group input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 1px #3b82f6; }
+        .range-slider { width: 100%; margin-top: 0.5rem; accent-color: #f59e0b; }
+    </style>
+</head>
+<body class="text-gray-800">
+
+<div class="max-w-7xl mx-auto p-4 md:p-8">
+    <header class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 border-l-4 border-amber-500 pl-4">財務生存診斷：外溢機制與健康變現</h1>
+        <p class="text-gray-500 mt-2 ml-4">模組定位：面談展示端 / 稟賦效應與黏著度強化</p>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h2 class="text-xl font-bold mb-4 border-b pb-2">設定變數</h2>
+            
+            <div class="space-y-6">
+                <div>
+                    <h3 class="text-sm font-bold text-gray-500 mb-3">1. 預計投保內容</h3>
+                    <div class="input-group mb-3">
+                        <label>年繳保費 (元)</label>
+                        <input type="number" id="basePremium" value="36000" min="10000" step="1000" oninput="calculate()">
+                    </div>
+                    <div class="input-group">
+                        <label>繳費年期 (年)</label>
+                        <input type="number" id="paymentYears" value="20" min="1" max="50" oninput="calculate()">
+                    </div>
+                </div>
+                
+                <div class="border-t pt-4">
+                    <h3 class="text-sm font-bold text-gray-500 mb-3">2. 您的運動習慣評估</h3>
+                    <div class="mb-4">
+                        <label class="block text-sm font-bold text-gray-700 mb-2">每週平均運動/走路達標天數</label>
+                        <div class="flex justify-between text-xs text-gray-500 mb-1 font-bold">
+                            <span>0天 (無習慣)</span><span>3天 (一般)</span><span>7天 (極度自律)</span>
+                        </div>
+                        <input type="range" id="exerciseDays" min="0" max="7" step="1" value="3" class="range-slider" oninput="calculate()">
+                        <div class="text-center text-amber-600 font-bold mt-2 text-lg">每週 <span id="val-days">3</span> 天</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-2 space-y-6">
+            
+            <div class="bg-gray-900 p-6 rounded-xl shadow-lg relative overflow-hidden flex flex-col justify-center text-center border border-gray-800">
+                <div class="absolute top-0 left-0 bg-amber-500 text-gray-900 text-xs font-bold px-3 py-1 rounded-br-lg" id="peer-benchmark">同儕數據對比載入中...</div>
+                
+                <h2 class="text-gray-400 font-bold mb-2 mt-4">若未啟動外溢機制，您將白白流失的既有資產：</h2>
+                
+                <div class="grid grid-cols-2 gap-4 mt-2">
+                    <div>
+                        <div class="text-sm text-gray-500 mb-1">溢繳保費總額</div>
+                        <div class="text-4xl font-extrabold text-amber-400" id="totalSaved">計算中...</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-gray-500 mb-1">錯失的小樹點回饋 (點)</div>
+                        <div class="text-4xl font-extrabold text-emerald-400" id="totalPoints">計算中...</div>
+                    </div>
+                </div>
+                
+                <p class="text-sm text-gray-400 mt-4 bg-gray-800 p-2 rounded inline-block mx-auto" id="endowment-msg">
+                    您目前的運動習慣，相當於每年多繳了 X 元的「健康稅」。
+                </p>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <h2 class="text-xl font-bold mb-4">累積繳費差距 (健康複利效應)</h2>
+                <div class="relative h-64 w-full">
+                    <canvas id="spilloverChart"></canvas>
+                </div>
+                <p class="text-xs text-gray-400 mt-4 text-center">本試算採用模擬階梯式外溢折減率。實際保費折減機制與小樹點發放，依國泰人壽 FitBack 健康吧與個別商品條款為準。</p>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<script>
+    let myChart = null;
+
+    function calculate() {
+        const basePremium = parseInt(document.getElementById('basePremium').value);
+        const paymentYears = parseInt(document.getElementById('paymentYears').value);
+        const exerciseDays = parseInt(document.getElementById('exerciseDays').value);
+
+        document.getElementById('val-days').innerText = exerciseDays;
+
+        // 模擬 FitBack 階梯式折減率與點數
+        let discountRate = 0;
+        let annualPoints = 0;
+        let peerText = "";
+
+        if (exerciseDays === 0) {
+            discountRate = 0.0;
+            annualPoints = 0;
+            peerText = "落後 85% 的保戶健康指標";
+        } else if (exerciseDays <= 2) {
+            discountRate = 0.01; // 1%
+            annualPoints = 500;
+            peerText = "超越 30% 保戶，建議提升至每週 3 天";
+        } else if (exerciseDays <= 4) {
+            discountRate = 0.03; // 3%
+            annualPoints = 1500;
+            peerText = "與 72% 保戶持平，享有進階費率折減";
+        } else if (exerciseDays <= 6) {
+            discountRate = 0.05; // 5%
+            annualPoints = 3000;
+            peerText = "超越 88% 保戶，享有高階費率折減";
+        } else {
+            discountRate = 0.08; // 8%
+            annualPoints = 5000;
+            peerText = "超越 95% 保戶，享有頂級費率折減與點數";
+        }
+
+        document.getElementById('peer-benchmark').innerText = peerText;
+
+        const annualSaved = basePremium * discountRate;
+        const totalSaved = annualSaved * paymentYears;
+        const totalPoints = annualPoints * paymentYears;
+
+        document.getElementById('totalSaved').innerText = "NT$ " + totalSaved.toLocaleString();
+        document.getElementById('totalPoints').innerText = totalPoints.toLocaleString();
+
+        const msgElem = document.getElementById('endowment-msg');
+        if (discountRate > 0) {
+            msgElem.innerHTML = `您目前的運動習慣，相當於每年多繳了 <strong class="text-amber-400">${annualSaved.toLocaleString()} 元</strong> 的「健康稅」。`;
+        } else {
+            msgElem.innerHTML = `啟動健康計畫，您最高可免除 <strong class="text-amber-400"> ${(basePremium * 0.08 * paymentYears).toLocaleString()} 元</strong> 的潛在溢繳保費。`;
+        }
+
+        // 繪製圖表資料
+        let labels = [];
+        let cumulativeBase = [];
+        let cumulativeDiscounted = [];
+        let currentBase = 0;
+        let currentDiscounted = 0;
+
+        for (let i = 1; i <= paymentYears; i++) {
+            labels.push(`第 ${i} 年`);
+            currentBase += basePremium;
+            // 外溢保單通常首年無折扣或為基礎折扣，此處採簡化平準計算以便視覺呈現
+            currentDiscounted += (basePremium - annualSaved);
+            cumulativeBase.push(currentBase);
+            cumulativeDiscounted.push(currentDiscounted);
+        }
+
+        drawChart(labels, cumulativeBase, cumulativeDiscounted);
+    }
+
+    function drawChart(labels, dataBase, dataDiscounted) {
+        const ctx = document.getElementById('spilloverChart').getContext('2d');
+        
+        if (myChart) myChart.destroy();
+
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: '未使用外溢機制 (總繳保費)',
+                        data: dataBase,
+                        borderColor: '#94a3b8',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        fill: false,
+                        pointRadius: 0
+                    },
+                    {
+                        label: '外溢折減後 (實際總繳)',
+                        data: dataDiscounted,
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                        borderWidth: 3,
+                        fill: '-1', // 填充至上一條線，形成「省下的區塊」
+                        pointRadius: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.raw.toLocaleString() + ' 元';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        grid: { color: '#e2e8f0' },
+                        ticks: { callback: function(value) { return (value/10000) + ' 萬'; } }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+
+    // 初始化計算
+    window.onload = calculate;
+</script>
+
+</body>
+</html>

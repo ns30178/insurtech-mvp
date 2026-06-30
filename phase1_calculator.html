@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 1: 退休與通膨破產計算機</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .input-group label { display: block; font-size: 0.875rem; font-weight: 600; color: #475569; margin-bottom: 0.25rem; }
+        .input-group input { width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 0.375rem; background-color: #fff; }
+        .input-group input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 1px #3b82f6; }
+    </style>
+</head>
+<body class="text-gray-800">
+
+<div class="max-w-7xl mx-auto p-4 md:p-8">
+    <header class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 border-l-4 border-blue-600 pl-4">財務生存診斷：資產存活率演算</h1>
+        <p class="text-gray-500 mt-2 ml-4">模組定位：面談展示端 / 通膨風險具象化</p>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h2 class="text-xl font-bold mb-4 border-b pb-2">設定變數</h2>
+            
+            <div class="space-y-4">
+                <div class="input-group">
+                    <label>目前年齡</label>
+                    <input type="number" id="currentAge" value="35" min="20" max="70" oninput="calculate()">
+                </div>
+                <div class="input-group">
+                    <label>預計退休年齡</label>
+                    <input type="number" id="retireAge" value="65" min="40" max="80" oninput="calculate()">
+                </div>
+                <div class="input-group">
+                    <label>目前已備退休金 (萬元)</label>
+                    <input type="number" id="currentAssets" value="100" min="0" oninput="calculate()">
+                </div>
+                <div class="input-group">
+                    <label>每月可新增投入 (萬元)</label>
+                    <input type="number" id="monthlySaving" value="2" min="0" step="0.1" oninput="calculate()">
+                </div>
+                <div class="input-group">
+                    <label>期望退休月生活費 (萬元/現值)</label>
+                    <input type="number" id="monthlyExpense" value="5" min="1" step="0.5" oninput="calculate()">
+                </div>
+                
+                <div class="border-t pt-4 mt-4">
+                    <h3 class="text-sm font-bold text-gray-500 mb-3">總體經濟假設參數</h3>
+                    <div class="input-group mb-3">
+                        <label>預估年通膨率 (%)</label>
+                        <input type="number" id="inflationRate" value="2.5" step="0.1" oninput="calculate()">
+                    </div>
+                    <div class="input-group">
+                        <label>理財工具年化報酬率 (%)</label>
+                        <input type="number" id="roi" value="2.0" step="0.1" oninput="calculate()">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-2 space-y-6">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-red-50 p-6 rounded-xl border border-red-100 flex flex-col justify-center items-center text-center">
+                    <div class="text-red-500 font-bold mb-1">破產警戒線 (資產歸零)</div>
+                    <div class="text-4xl font-extrabold text-red-700" id="bankruptAge">計算中...</div>
+                    <div class="text-sm text-red-600 mt-2" id="bankruptMsg"></div>
+                </div>
+                
+                <div class="bg-blue-50 p-6 rounded-xl border border-blue-100 flex flex-col justify-center items-center text-center">
+                    <div class="text-blue-600 font-bold mb-1">通膨不作為成本 (退休時)</div>
+                    <div class="text-4xl font-extrabold text-blue-800" id="coiValue">計算中...</div>
+                    <div class="text-sm text-blue-600 mt-2">為維持目前生活品質，屆時每月需支出的實際金額</div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <h2 class="text-xl font-bold mb-4">資產水位與通膨消耗軌跡</h2>
+                <div class="relative h-80 w-full">
+                    <canvas id="financeChart"></canvas>
+                </div>
+                <p class="text-xs text-gray-400 mt-4 text-center">本系統試算結果僅供財務規劃參考，不代表實際保證績效。實際保障與費率依各商品條款為準。</p>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<script>
+    let myChart = null;
+
+    function calculate() {
+        // 取得輸入值
+        const currentAge = parseInt(document.getElementById('currentAge').value);
+        const retireAge = parseInt(document.getElementById('retireAge').value);
+        const currentAssets = parseFloat(document.getElementById('currentAssets').value) * 10000;
+        const monthlySaving = parseFloat(document.getElementById('monthlySaving').value) * 10000;
+        const monthlyExpense = parseFloat(document.getElementById('monthlyExpense').value) * 10000;
+        const inflationRate = parseFloat(document.getElementById('inflationRate').value) / 100;
+        const roi = parseFloat(document.getElementById('roi').value) / 100;
+
+        let labels = [];
+        let assetData = [];
+        let assets = currentAssets;
+        let bankruptAge = null;
+        const maxAge = 100;
+
+        // 計算每年狀態
+        for (let age = currentAge; age <= maxAge; age++) {
+            labels.push(age + '歲');
+            
+            if (age < retireAge) {
+                // 累積期：年初投入，年底結算本利和
+                assets = assets * (1 + roi) + (monthlySaving * 12);
+                assetData.push(Math.round(assets / 10000));
+            } else {
+                // 提領期：考慮通膨後的實際年花費
+                let yearsFromNow = age - currentAge;
+                let inflatedAnnualExpense = (monthlyExpense * 12) * Math.pow(1 + inflationRate, yearsFromNow);
+                
+                assets = assets * (1 + roi) - inflatedAnnualExpense;
+                assetData.push(Math.round(assets / 10000));
+
+                if (assets < 0 && bankruptAge === null) {
+                    bankruptAge = age;
+                }
+            }
+        }
+
+        // 計算不作為成本 (退休時所需的通膨後生活費)
+        let yearsToRetire = retireAge - currentAge;
+        let futureExpense = monthlyExpense * Math.pow(1 + inflationRate, yearsToRetire);
+        
+        // 更新 UI 數據
+        updateUI(bankruptAge, futureExpense);
+        
+        // 繪製圖表
+        drawChart(labels, assetData, bankruptAge, currentAge);
+    }
+
+    function updateUI(bankruptAge, futureExpense) {
+        const bankruptElem = document.getElementById('bankruptAge');
+        const bankruptMsg = document.getElementById('bankruptMsg');
+        
+        if (bankruptAge) {
+            bankruptElem.innerText = bankruptAge + " 歲";
+            bankruptElem.classList.replace('text-green-600', 'text-red-700');
+            bankruptMsg.innerText = "無法支撐至平均餘命 (85歲)";
+        } else {
+            bankruptElem.innerText = "安全過關";
+            bankruptElem.classList.replace('text-red-700', 'text-green-600');
+            bankruptMsg.innerText = "資產足以支撐至 100 歲";
+        }
+
+        document.getElementById('coiValue').innerText = (futureExpense / 10000).toFixed(1) + " 萬";
+    }
+
+    function drawChart(labels, assetData, bankruptAge, currentAge) {
+        const ctx = document.getElementById('financeChart').getContext('2d');
+        
+        if (myChart) {
+            myChart.destroy();
+        }
+
+        // 設定資產歸零點的背景色標示
+        let pointColors = assetData.map((val) => {
+            return val < 0 ? 'rgba(239, 68, 68, 1)' : 'rgba(59, 130, 246, 1)';
+        });
+
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '資產餘額 (萬元)',
+                    data: assetData,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    pointBackgroundColor: pointColors,
+                    pointRadius: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let val = context.raw;
+                                return val < 0 ? `赤字: ${val} 萬` : `餘額: ${val} 萬`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        grid: { color: '#e2e8f0' },
+                        ticks: { callback: function(value) { return value + '萬'; } }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+
+    // 初始化計算
+    window.onload = calculate;
+</script>
+
+</body>
+</html>

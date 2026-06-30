@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3分鐘財務生存診斷</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        #app-container { max-width: 480px; margin: 0 auto; background-color: #ffffff; min-height: 100vh; position: relative; overflow-x: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+        .screen { display: none; opacity: 0; transition: opacity 0.4s ease, transform 0.4s ease; transform: translateX(20px); }
+        .screen.active { display: flex; opacity: 1; transform: translateX(0); }
+        .choice-card { transition: all 0.2s; cursor: pointer; }
+        .choice-card:active { transform: scale(0.95); }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #10b981; border-radius: 50%; width: 48px; height: 48px; animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .progress-bar-fill { width: 0%; transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1); }
+    </style>
+</head>
+<body class="text-gray-800">
+
+<div id="app-container" class="flex flex-col">
+
+    <div id="screen-welcome" class="screen active flex-col h-screen p-6 justify-center items-center text-center">
+        <div class="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
+            <span class="text-4xl">📊</span>
+        </div>
+        <h1 class="text-2xl font-extrabold mb-3 text-gray-900">財務生存診斷系統</h1>
+        <p class="text-gray-500 mb-8 text-sm leading-relaxed">這不是一般的問卷。<br>透過 3 個直覺選擇，系統將比對大數據庫，立刻找出您潛在的「資產破口」與「防禦盲點」。</p>
+        <button onclick="nextScreen('screen-q1')" class="w-full bg-gray-900 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-black transition-colors">立即開始診斷</button>
+    </div>
+
+    <div id="screen-q1" class="screen flex-col h-screen p-6 justify-center">
+        <div class="mb-6">
+            <div class="text-xs font-bold text-gray-400 mb-1">STEP 1/3：直覺測試</div>
+            <div class="w-full bg-gray-200 rounded-full h-1.5"><div class="bg-gray-800 h-1.5 rounded-full" style="width: 33%"></div></div>
+        </div>
+        <h2 class="text-xl font-bold mb-8 leading-snug">情境：突然獲得 10 萬元意外獎金，您的第一直覺是？</h2>
+        <div class="grid grid-cols-2 gap-4 h-56">
+            <div onclick="saveAndNext('v1', 'consume', 'screen-q2')" class="choice-card flex flex-col items-center justify-center p-4 bg-white border-2 border-gray-200 rounded-2xl hover:border-gray-800 hover:bg-gray-50 shadow-sm text-center">
+                <span class="text-4xl mb-3">✈️</span>
+                <span class="font-bold text-gray-800 text-sm">犒賞自己<br>買最新產品/旅遊</span>
+                <span class="text-xs text-gray-400 mt-2 font-mono">← 左選</span>
+            </div>
+            <div onclick="saveAndNext('v1', 'save', 'screen-q2')" class="choice-card flex flex-col items-center justify-center p-4 bg-white border-2 border-gray-200 rounded-2xl hover:border-gray-800 hover:bg-gray-50 shadow-sm text-center">
+                <span class="text-4xl mb-3">📈</span>
+                <span class="font-bold text-gray-800 text-sm">未來規劃<br>投入理財/定存</span>
+                <span class="text-xs text-gray-400 mt-2 font-mono">右選 →</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-q2" class="screen flex-col h-screen p-6 justify-center">
+        <div class="mb-6">
+            <div class="text-xs font-bold text-gray-400 mb-1">STEP 2/3：防禦測試</div>
+            <div class="w-full bg-gray-200 rounded-full h-1.5"><div class="bg-gray-800 h-1.5 rounded-full" style="width: 66%"></div></div>
+        </div>
+        <h2 class="text-xl font-bold mb-8 leading-snug">面對資產累積，您更傾向哪一種策略？</h2>
+        <div class="grid grid-cols-2 gap-4 h-56">
+            <div onclick="saveAndNext('v2', 'protect', 'screen-q3')" class="choice-card flex flex-col items-center justify-center p-4 bg-white border-2 border-gray-200 rounded-2xl hover:border-gray-800 hover:bg-gray-50 shadow-sm text-center">
+                <span class="text-4xl mb-3">🛡️</span>
+                <span class="font-bold text-gray-800 text-sm">極度保守<br>寧可少賺絕不虧本</span>
+                <span class="text-xs text-gray-400 mt-2 font-mono">← 左選</span>
+            </div>
+            <div onclick="saveAndNext('v2', 'grow', 'screen-q3')" class="choice-card flex flex-col items-center justify-center p-4 bg-white border-2 border-gray-200 rounded-2xl hover:border-gray-800 hover:bg-gray-50 shadow-sm text-center">
+                <span class="text-4xl mb-3">🔥</span>
+                <span class="font-bold text-gray-800 text-sm">積極擴張<br>為了高報酬願承擔波動</span>
+                <span class="text-xs text-gray-400 mt-2 font-mono">右選 →</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-q3" class="screen flex-col h-screen p-6 justify-center">
+        <div class="mb-6">
+            <div class="text-xs font-bold text-gray-400 mb-1">STEP 3/3：風險壓力測試</div>
+            <div class="w-full bg-gray-200 rounded-full h-1.5"><div class="bg-gray-800 h-1.5 rounded-full" style="width: 100%"></div></div>
+        </div>
+        <h2 class="text-xl font-bold mb-8 leading-snug">閉上眼睛想像未來的風險，您最害怕遇到？</h2>
+        <div class="grid grid-cols-2 gap-4 h-56">
+            <div onclick="saveAndNext('v3', 'longevity', 'screen-loading-1')" class="choice-card flex flex-col items-center justify-center p-4 bg-white border-2 border-gray-200 rounded-2xl hover:border-gray-800 hover:bg-gray-50 shadow-sm text-center">
+                <span class="text-4xl mb-3">⏳</span>
+                <span class="font-bold text-gray-800 text-sm">活太久<br>資產提早耗盡</span>
+                <span class="text-xs text-gray-400 mt-2 font-mono">← 左選</span>
+            </div>
+            <div onclick="saveAndNext('v3', 'morbidity', 'screen-loading-1')" class="choice-card flex flex-col items-center justify-center p-4 bg-white border-2 border-gray-200 rounded-2xl hover:border-gray-800 hover:bg-gray-50 shadow-sm text-center">
+                <span class="text-4xl mb-3">🏥</span>
+                <span class="font-bold text-gray-800 text-sm">突發疾病<br>成為家人的重擔</span>
+                <span class="text-xs text-gray-400 mt-2 font-mono">右選 →</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-loading-1" class="screen flex-col h-screen p-6 justify-center items-center text-center">
+        <div class="loader mb-6"></div>
+        <h2 class="text-xl font-bold mb-2">基礎性格分析完成 80%</h2>
+        <p class="text-gray-500 text-sm">正在載入同儕落差大數據庫...</p>
+    </div>
+
+    <div id="screen-form" class="screen flex-col min-h-screen p-6 justify-center">
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-8">
+            <p class="text-sm text-emerald-800 font-bold mb-1">✅ 初步演算完成</p>
+            <p class="text-xs text-emerald-600">為了精準計算您的「通膨折損率」與「急迫性權重」，請補充以下 2 項參數即可解鎖診斷報告。</p>
+        </div>
+
+        <div class="space-y-5">
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">1. 您的實際年齡區間</label>
+                <select id="input-age" class="w-full p-4 border border-gray-300 rounded-xl bg-white focus:outline-none focus:border-gray-800 focus:ring-1 focus:ring-gray-800 appearance-none">
+                    <option value="" disabled selected>請選擇...</option>
+                    <option value="20-30">20 - 30 歲</option>
+                    <option value="31-40">31 - 40 歲</option>
+                    <option value="41-50">41 - 50 歲</option>
+                    <option value="51+">51 歲以上</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">2. 家庭責任狀態</label>
+                <select id="input-family" class="w-full p-4 border border-gray-300 rounded-xl bg-white focus:outline-none focus:border-gray-800 focus:ring-1 focus:ring-gray-800 appearance-none">
+                    <option value="" disabled selected>請選擇...</option>
+                    <option value="single">單身 / 無扶養壓力</option>
+                    <option value="married_no_kids">已婚 / 雙薪無子女</option>
+                    <option value="has_kids">三明治族群 (有子女/需奉養父母)</option>
+                </select>
+            </div>
+            <button onclick="submitFinal()" class="w-full bg-gray-900 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-black transition-colors mt-4">產生最終診斷報告</button>
+        </div>
+    </div>
+
+    <div id="screen-loading-2" class="screen flex-col h-screen p-6 justify-center items-center text-center">
+        <div class="loader mb-6"></div>
+        <h2 class="text-xl font-bold mb-2">生成專屬診斷書</h2>
+        <p class="text-gray-500 text-sm">正在建立您的財務破產警戒線...</p>
+    </div>
+
+    <div id="screen-result" class="screen flex-col min-h-screen p-6 bg-gray-900 text-white">
+        <div class="mt-6 mb-8 border-b border-gray-700 pb-6">
+            <p class="text-gray-400 text-xs mb-2 tracking-widest">DIAGNOSTIC RESULT</p>
+            <h2 class="text-3xl font-extrabold text-white mb-2" id="res-persona">運算中...</h2>
+            <div class="inline-block bg-red-900/50 border border-red-500/50 text-red-300 text-xs px-2 py-1 rounded" id="res-tag">高危險群警示</div>
+        </div>
+        
+        <div class="bg-gray-800 rounded-2xl p-5 mb-6 border border-gray-700 relative overflow-hidden">
+            <div class="flex justify-between items-end mb-2">
+                <span class="text-sm font-bold text-gray-300">防護網檢測進度</span>
+                <span class="text-xl font-extrabold text-emerald-400">35%</span>
+            </div>
+            <div class="w-full bg-gray-700 rounded-full h-2 mb-4">
+                <div class="bg-emerald-400 h-2 rounded-full progress-bar-fill" id="progress-bar"></div>
+            </div>
+            <p class="text-gray-400 text-xs leading-relaxed">系統已找出您的<span class="text-red-400 font-bold">核心財務盲點</span>。剩餘 65% 的詳細圖表（含死亡交叉年份與不作為成本量化），基於機敏資訊保護機制，目前處於鎖定狀態。</p>
+        </div>
+
+        <div class="mt-auto pb-8">
+            <div class="flex items-center justify-center mb-4 text-gray-500 text-sm">
+                <span class="mr-2">🔒</span> 點擊下方按鈕，由專屬顧問為您解鎖完整報告
+            </div>
+            <a href="https://line.me/ti/p/Q2L6bdAiqt" target="_blank" onclick="alert('客戶點擊後將跳轉至您的 LINE。面談時，您可開啟 Phase 1 計算機展示詳細圖表。')" class="block text-center w-full bg-emerald-500 text-gray-900 font-extrabold py-4 rounded-xl shadow-lg hover:bg-emerald-400 transition-colors">
+                💬 聯繫顧問解鎖 65% 報告
+            </a>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    let userData = {};
+
+    function nextScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+        window.scrollTo(0,0);
+    }
+
+    function saveAndNext(key, value, nextId) {
+        userData[key] = value;
+        nextScreen(nextId);
+        if(nextId === 'screen-loading-1') {
+            setTimeout(() => { nextScreen('screen-form'); }, 1500); // 假裝運算 1.5 秒
+        }
+    }
+
+    function submitFinal() {
+        const age = document.getElementById('input-age').value;
+        const family = document.getElementById('input-family').value;
+        
+        if(!age || !family) {
+            alert('請完整選擇資料以產生報告');
+            return;
+        }
+        
+        userData['age'] = age;
+        userData['family'] = family;
+        
+        nextScreen('screen-loading-2');
+        
+        setTimeout(() => {
+            generateReport();
+            nextScreen('screen-result');
+            // 觸發進度條動畫
+            setTimeout(() => { document.getElementById('progress-bar').style.width = '35%'; }, 100);
+        }, 2000);
+    }
+
+    function generateReport() {
+        let persona = "";
+        let tag = "";
+
+        // 核心邏輯 + 急迫性權重
+        if (userData.v1 === 'consume') {
+            persona = "享樂浪人型";
+            tag = "⚠ 現金流枯竭 / 無抗通膨資產";
+        } else {
+            if (userData.v2 === 'protect') {
+                persona = "保守防禦型";
+                tag = "⚠ 購買力重度折損 / 醫療防線脆弱";
+            } else {
+                persona = "積極擴張型";
+                tag = "⚠ 缺乏下檔保護 / 波動風險極高";
+            }
+        }
+
+        // 權重覆寫機制 (若有家庭責任，強制提升風險級距)
+        if (userData.family === 'has_kids') {
+            persona = "責任焦慮型 (三明治族群)";
+            tag = "🚨 收入中斷危機 / 長照壽險高危急迫";
+        }
+
+        document.getElementById('res-persona').innerText = persona;
+        document.getElementById('res-tag').innerText = tag;
+        
+        console.log("【業務端紀錄】可透過後端儲存此資料:", userData);
+    }
+</script>
+
+</body>
+</html>
