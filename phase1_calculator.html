@@ -6,6 +6,8 @@
     <title>Phase 1: 退休與通膨破產計算機</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         body { background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         .input-group label { display: block; font-size: 0.875rem; font-weight: 600; color: #475569; margin-bottom: 0.25rem; }
@@ -16,16 +18,20 @@
 <body class="text-gray-800">
 
 <div class="max-w-7xl mx-auto p-4 md:p-8">
-    <header class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 border-l-4 border-blue-600 pl-4">財務生存診斷：資產存活率演算</h1>
-        <p class="text-gray-500 mt-2 ml-4">模組定位：面談展示端 / 通膨風險具象化</p>
+    <header class="mb-8 flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 border-l-4 border-blue-600 pl-4">財務生存診斷：資產存活率演算</h1>
+            <p class="text-gray-500 mt-2 ml-4">內部面談展示端 / 通膨風險具象化</p>
+        </div>
+        <button onclick="exportPDF()" id="pdf-btn" class="bg-gray-800 hover:bg-black text-white font-bold py-2 px-4 rounded-lg shadow transition-colors flex items-center">
+            <span class="mr-2">📥</span> 匯出專屬診斷報告 (PDF)
+        </button>
     </header>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div id="export-area" class="grid grid-cols-1 lg:grid-cols-3 gap-8 bg-slate-50 p-4 rounded-xl">
         
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200" data-html2canvas-ignore="false">
             <h2 class="text-xl font-bold mb-4 border-b pb-2">設定變數</h2>
-            
             <div class="space-y-4">
                 <div class="input-group">
                     <label>目前年齡</label>
@@ -63,14 +69,12 @@
         </div>
 
         <div class="lg:col-span-2 space-y-6">
-            
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="bg-red-50 p-6 rounded-xl border border-red-100 flex flex-col justify-center items-center text-center">
                     <div class="text-red-500 font-bold mb-1">破產警戒線 (資產歸零)</div>
                     <div class="text-4xl font-extrabold text-red-700" id="bankruptAge">計算中...</div>
                     <div class="text-sm text-red-600 mt-2" id="bankruptMsg"></div>
                 </div>
-                
                 <div class="bg-blue-50 p-6 rounded-xl border border-blue-100 flex flex-col justify-center items-center text-center">
                     <div class="text-blue-600 font-bold mb-1">通膨不作為成本 (退休時)</div>
                     <div class="text-4xl font-extrabold text-blue-800" id="coiValue">計算中...</div>
@@ -80,12 +84,11 @@
 
             <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                 <h2 class="text-xl font-bold mb-4">資產水位與通膨消耗軌跡</h2>
-                <div class="relative h-80 w-full">
+                <div class="relative h-80 w-full bg-white">
                     <canvas id="financeChart"></canvas>
                 </div>
                 <p class="text-xs text-gray-400 mt-4 text-center">本系統試算結果僅供財務規劃參考，不代表實際保證績效。實際保障與費率依各商品條款為準。</p>
             </div>
-            
         </div>
     </div>
 </div>
@@ -94,7 +97,6 @@
     let myChart = null;
 
     function calculate() {
-        // 取得輸入值
         const currentAge = parseInt(document.getElementById('currentAge').value);
         const retireAge = parseInt(document.getElementById('retireAge').value);
         const currentAssets = parseFloat(document.getElementById('currentAssets').value) * 10000;
@@ -103,42 +105,25 @@
         const inflationRate = parseFloat(document.getElementById('inflationRate').value) / 100;
         const roi = parseFloat(document.getElementById('roi').value) / 100;
 
-        let labels = [];
-        let assetData = [];
+        let labels = [], assetData = [];
         let assets = currentAssets;
         let bankruptAge = null;
-        const maxAge = 100;
 
-        // 計算每年狀態
-        for (let age = currentAge; age <= maxAge; age++) {
+        for (let age = currentAge; age <= 100; age++) {
             labels.push(age + '歲');
-            
             if (age < retireAge) {
-                // 累積期：年初投入，年底結算本利和
                 assets = assets * (1 + roi) + (monthlySaving * 12);
-                assetData.push(Math.round(assets / 10000));
             } else {
-                // 提領期：考慮通膨後的實際年花費
                 let yearsFromNow = age - currentAge;
                 let inflatedAnnualExpense = (monthlyExpense * 12) * Math.pow(1 + inflationRate, yearsFromNow);
-                
                 assets = assets * (1 + roi) - inflatedAnnualExpense;
-                assetData.push(Math.round(assets / 10000));
-
-                if (assets < 0 && bankruptAge === null) {
-                    bankruptAge = age;
-                }
+                if (assets < 0 && bankruptAge === null) bankruptAge = age;
             }
+            assetData.push(Math.round(assets / 10000));
         }
 
-        // 計算不作為成本 (退休時所需的通膨後生活費)
-        let yearsToRetire = retireAge - currentAge;
-        let futureExpense = monthlyExpense * Math.pow(1 + inflationRate, yearsToRetire);
-        
-        // 更新 UI 數據
+        let futureExpense = monthlyExpense * Math.pow(1 + inflationRate, retireAge - currentAge);
         updateUI(bankruptAge, futureExpense);
-        
-        // 繪製圖表
         drawChart(labels, assetData, bankruptAge, currentAge);
     }
 
@@ -155,65 +140,62 @@
             bankruptElem.classList.replace('text-red-700', 'text-green-600');
             bankruptMsg.innerText = "資產足以支撐至 100 歲";
         }
-
         document.getElementById('coiValue').innerText = (futureExpense / 10000).toFixed(1) + " 萬";
     }
 
     function drawChart(labels, assetData, bankruptAge, currentAge) {
         const ctx = document.getElementById('financeChart').getContext('2d');
-        
-        if (myChart) {
-            myChart.destroy();
-        }
-
-        // 設定資產歸零點的背景色標示
-        let pointColors = assetData.map((val) => {
-            return val < 0 ? 'rgba(239, 68, 68, 1)' : 'rgba(59, 130, 246, 1)';
-        });
+        if (myChart) myChart.destroy();
+        let pointColors = assetData.map(val => val < 0 ? 'rgba(239, 68, 68, 1)' : 'rgba(59, 130, 246, 1)');
 
         myChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
                 datasets: [{
-                    label: '資產餘額 (萬元)',
-                    data: assetData,
-                    borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    pointBackgroundColor: pointColors,
-                    pointRadius: 3
+                    label: '資產餘額 (萬元)', data: assetData, borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)', borderWidth: 2, fill: true,
+                    pointBackgroundColor: pointColors, pointRadius: 3
                 }]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'top' },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                let val = context.raw;
-                                return val < 0 ? `赤字: ${val} 萬` : `餘額: ${val} 萬`;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        grid: { color: '#e2e8f0' },
-                        ticks: { callback: function(value) { return value + '萬'; } }
-                    },
-                    x: {
-                        grid: { display: false }
-                    }
-                }
+                responsive: true, maintainAspectRatio: false, animation: false, // 關閉動畫以利截圖
+                plugins: { legend: { position: 'top' } },
+                scales: { y: { grid: { color: '#e2e8f0' }, ticks: { callback: v => v + '萬' } }, x: { grid: { display: false } } }
             }
         });
     }
 
-    // 初始化計算
+    // PDF 匯出功能
+    async function exportPDF() {
+        const btn = document.getElementById('pdf-btn');
+        btn.innerHTML = "⏳ 正在產生報告...";
+        btn.disabled = true;
+
+        const element = document.getElementById('export-area');
+        
+        // 使用 html2canvas 將網頁元素轉為圖片
+        const canvas = await html2canvas(element, {
+            scale: 2, // 提高解析度
+            useCORS: true,
+            backgroundColor: '#f8fafc'
+        });
+
+        const imgData = canvas.toDataURL('image/png');
+        
+        // 使用 jsPDF 將圖片放入 PDF 中
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('l', 'mm', 'a4'); // 'l' 為橫式
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        
+        pdf.addImage(imgData, 'PNG', 0, 10, pdfWidth, pdfHeight);
+        pdf.save('個人財務生存診斷報告.pdf');
+
+        btn.innerHTML = '<span class="mr-2">📥</span> 匯出專屬診斷報告 (PDF)';
+        btn.disabled = false;
+    }
+
     window.onload = calculate;
 </script>
 
