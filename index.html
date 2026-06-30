@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>3分鐘財務生存診斷</title>
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XXXXXXXXXX');
+    </script>
+
     <style>
         body { background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         #app-container { max-width: 480px; margin: 0 auto; background-color: #ffffff; min-height: 100vh; position: relative; overflow-x: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
@@ -154,7 +163,7 @@
             <div class="flex items-center justify-center mb-4 text-gray-500 text-sm">
                 <span class="mr-2">🔒</span> 點擊下方按鈕，由專屬顧問為您解鎖完整報告
             </div>
-            <a href="https://line.me/ti/p/Q2L6bdAiqt" target="_blank" class="block text-center w-full bg-emerald-500 text-gray-900 font-extrabold py-4 rounded-xl shadow-lg hover:bg-emerald-400 transition-colors" id="line-contact-btn">
+            <a href="#" target="_blank" class="block text-center w-full bg-emerald-500 text-gray-900 font-extrabold py-4 rounded-xl shadow-lg hover:bg-emerald-400 transition-colors" id="line-contact-btn">
                 💬 聯繫顧問解鎖 65% 報告
             </a>
         </div>
@@ -163,6 +172,18 @@
 </div>
 
 <script>
+    // ==========================================
+    // 修改點 2 與 3：系統串接設定區
+    // ==========================================
+    
+    // 修改點 2：將下方網址換成您在 Google Apps Script 部署後取得的 Webhook URL
+    const GAS_WEBHOOK_URL = '在此貼上您的_Google_Apps_Script_網址'; 
+    
+    // 修改點 3：填入您本人的 LINE ID (不含@)
+    const YOUR_LINE_ID = '在此填入您的_LINE_ID'; 
+    
+    // ==========================================
+
     let userData = {};
 
     function nextScreen(screenId) {
@@ -175,7 +196,7 @@
         userData[key] = value;
         nextScreen(nextId);
         if(nextId === 'screen-loading-1') {
-            setTimeout(() => { nextScreen('screen-form'); }, 1500); // 假裝運算 1.5 秒
+            setTimeout(() => { nextScreen('screen-form'); }, 1500); 
         }
     }
 
@@ -196,7 +217,6 @@
         setTimeout(() => {
             generateReport();
             nextScreen('screen-result');
-            // 觸發進度條動畫
             setTimeout(() => { document.getElementById('progress-bar').style.width = '35%'; }, 100);
         }, 2000);
     }
@@ -205,7 +225,7 @@
         let persona = "";
         let tag = "";
 
-        // 核心邏輯 + 急迫性權重
+        // 核心邏輯
         if (userData.v1 === 'consume') {
             persona = "享樂浪人型";
             tag = "⚠ 現金流枯竭 / 無抗通膨資產";
@@ -219,16 +239,32 @@
             }
         }
 
-        // 權重覆寫機制 (若有家庭責任，強制提升風險級距)
+        // 權重覆寫
         if (userData.family === 'has_kids') {
             persona = "責任焦慮型 (三明治族群)";
             tag = "🚨 收入中斷危機 / 長照壽險高危急迫";
         }
 
+        userData['persona'] = persona;
+        userData['tag'] = tag;
+
         document.getElementById('res-persona').innerText = persona;
         document.getElementById('res-tag').innerText = tag;
         
-        console.log("【業務端紀錄】可透過後端儲存此資料:", userData);
+        // 1. 將資料發送到 Google 表單 (後台記錄)
+        if (GAS_WEBHOOK_URL !== '在此貼上您的_Google_Apps_Script_網址') {
+            fetch(GAS_WEBHOOK_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(userData)
+            }).catch(e => console.error("Data tracking failed"));
+        }
+
+        // 2. 動態生成預先打好字的 LINE 連結 (前台聯繫)
+        const lineText = `顧問您好，我剛完成了財務前測。\n系統判定我是「${persona}」。\n我想解鎖剩餘 65% 的圖表分析，謝謝！`;
+        const encodedText = encodeURIComponent(lineText);
+        document.getElementById('line-contact-btn').href = `https://line.me/ti/p/~${YOUR_LINE_ID}?text=${encodedText}`;
     }
 </script>
 
