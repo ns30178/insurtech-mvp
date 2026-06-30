@@ -6,6 +6,8 @@
     <title>Phase 2: 長照品質購物車</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         body { background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         .option-card { border: 2px solid #e2e8f0; transition: all 0.2s; cursor: pointer; }
@@ -16,14 +18,19 @@
 <body class="text-gray-800">
 
 <div class="max-w-7xl mx-auto p-4 md:p-8">
-    <header class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 border-l-4 border-emerald-500 pl-4">財務生存診斷：長期照護成本精算</h1>
-        <p class="text-gray-500 mt-2 ml-4">模組定位：面談展示端 / 風險具象化武器</p>
+    <header class="mb-8 flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 border-l-4 border-emerald-500 pl-4">財務生存診斷：長期照護成本精算</h1>
+            <p class="text-gray-500 mt-2 ml-4">內部面談展示端 / 風險具象化武器</p>
+        </div>
+        <button onclick="exportPDF()" id="pdf-btn" class="bg-gray-800 hover:bg-black text-white font-bold py-2 px-4 rounded-lg shadow transition-colors flex items-center">
+            <span class="mr-2">📥</span> 匯出專屬診斷報告 (PDF)
+        </button>
     </header>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div id="export-area" class="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-slate-50 p-4 rounded-xl">
         
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200" data-html2canvas-ignore="false">
             <h2 class="text-xl font-bold mb-6 border-b pb-2">請選擇預期的照護品質</h2>
             
             <div class="mb-6">
@@ -49,18 +56,12 @@
 
             <div class="mb-6">
                 <h3 class="text-sm font-bold text-gray-700 mb-2">2. 日常消耗與營養品 (每月)</h3>
-                <div class="flex justify-between text-xs text-gray-500 mb-1">
-                    <span>基礎 (1.5萬)</span><span>中階 (2.5萬)</span><span>高階 (4.0萬)</span>
-                </div>
                 <input type="range" id="consumables" min="15000" max="40000" step="5000" value="15000" class="range-slider" oninput="calculateTotal()">
                 <div class="text-right text-emerald-600 font-bold mt-1">NT$ <span id="val-consumables">15,000</span></div>
             </div>
 
             <div class="mb-6">
                 <h3 class="text-sm font-bold text-gray-700 mb-2">3. 輪椅/氣墊床/無障礙改建 (一次性)</h3>
-                <div class="flex justify-between text-xs text-gray-500 mb-1">
-                    <span>基本 (5萬)</span><span>標準 (15萬)</span><span>旗艦 (30萬)</span>
-                </div>
                 <input type="range" id="initialCost" min="50000" max="300000" step="10000" value="100000" class="range-slider" oninput="calculateTotal()">
                 <div class="text-right text-emerald-600 font-bold mt-1">NT$ <span id="val-initialCost">100,000</span></div>
             </div>
@@ -72,7 +73,6 @@
         </div>
 
         <div class="space-y-6">
-            
             <div class="bg-gray-900 p-6 rounded-xl shadow-lg text-center relative overflow-hidden">
                 <div class="absolute top-0 right-0 bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">家庭資產擊穿警報</div>
                 <h2 class="text-gray-400 font-bold mb-2">預估長期照護總開銷 (不含通膨)</h2>
@@ -82,11 +82,10 @@
 
             <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                 <h2 class="text-lg font-bold mb-4 text-gray-700 text-center">開銷結構佔比</h2>
-                <div class="relative h-64 w-full flex justify-center">
+                <div class="relative h-64 w-full flex justify-center bg-white">
                     <canvas id="costChart"></canvas>
                 </div>
             </div>
-            
         </div>
     </div>
 </div>
@@ -132,28 +131,31 @@
                 datasets: [{
                     data: [care, cons, init],
                     backgroundColor: ['#10b981', '#34d399', '#94a3b8'],
-                    borderWidth: 0,
-                    hoverOffset: 4
+                    borderWidth: 0
                 }]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
+                responsive: true, maintainAspectRatio: false, animation: false, // 關閉動畫以利截圖
                 plugins: {
-                    legend: { position: 'bottom' },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.label || '';
-                                if (label) label += ': ';
-                                label += new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(context.raw);
-                                return label;
-                            }
-                        }
-                    }
+                    legend: { position: 'bottom' }
                 }
             }
         });
+    }
+
+    async function exportPDF() {
+        const btn = document.getElementById('pdf-btn');
+        btn.innerHTML = "⏳ 正在產生報告..."; btn.disabled = true;
+        const element = document.getElementById('export-area');
+        const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#f8fafc' });
+        const imgData = canvas.toDataURL('image/png');
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('l', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        pdf.addImage(imgData, 'PNG', 0, 10, pdfWidth, pdfHeight);
+        pdf.save('長照成本精算報告.pdf');
+        btn.innerHTML = '<span class="mr-2">📥</span> 匯出專屬診斷報告 (PDF)'; btn.disabled = false;
     }
 
     window.onload = calculateTotal;
