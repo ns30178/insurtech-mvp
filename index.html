@@ -163,9 +163,11 @@
             <div class="flex items-center justify-center mb-4 text-gray-500 text-sm">
                 <span class="mr-2">🔒</span> 點擊下方按鈕，由專屬顧問為您解鎖完整報告
             </div>
-            <a href="#" target="_blank" class="block text-center w-full bg-emerald-500 text-gray-900 font-extrabold py-4 rounded-xl shadow-lg hover:bg-emerald-400 transition-colors" id="line-contact-btn">
+            
+            <a href="https://line.me/ti/p/Q2L6bdAiqt" target="_blank" class="block text-center w-full bg-emerald-500 text-gray-900 font-extrabold py-4 rounded-xl shadow-lg hover:bg-emerald-400 transition-colors">
                 💬 聯繫顧問解鎖 65% 報告
             </a>
+            
         </div>
     </div>
 
@@ -173,16 +175,9 @@
 
 <script>
     // ==========================================
-    // 修改點 2 與 3：系統串接設定區
+    // Google 表單 Webhook URL (後台記錄用)
     // ==========================================
-    
-    // 修改點 2：將下方網址換成您在 Google Apps Script 部署後取得的 Webhook URL
-    const GAS_WEBHOOK_URL = '在此貼上您的_Google_Apps_Script_網址'; 
-    
-    // 修改點 3：填入您本人的 LINE ID (不含@)
-    const YOUR_LINE_ID = '在此填入您的_LINE_ID'; 
-    
-    // ==========================================
+    const GAS_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbyiQxqoTBoZEykJfKuZZeuUmyLVn-afXLpgP5RgBGc0cYnuZvrhiFxwHeDil5yxow3i/exec'; 
 
     let userData = {};
 
@@ -251,8 +246,8 @@
         document.getElementById('res-persona').innerText = persona;
         document.getElementById('res-tag').innerText = tag;
         
-        // 1. 將資料發送到 Google 表單 (後台記錄)
-        if (GAS_WEBHOOK_URL !== 'https://script.google.com/macros/s/AKfycbyiQxqoTBoZEykJfKuZZeuUmyLVn-afXLpgP5RgBGc0cYnuZvrhiFxwHeDil5yxow3i/exec') {
+        // 將資料發送到 Google 表單 (後台記錄)
+        if (GAS_WEBHOOK_URL !== '') {
             fetch(GAS_WEBHOOK_URL, {
                 method: 'POST',
                 mode: 'no-cors',
@@ -260,11 +255,6 @@
                 body: JSON.stringify(userData)
             }).catch(e => console.error("Data tracking failed"));
         }
-
-        // 2. 動態生成預先打好字的 LINE 連結 (前台聯繫)
-        const lineText = `顧問您好，我剛完成了財務前測。\n系統判定我是「${persona}」。\n我想解鎖剩餘 65% 的圖表分析，謝謝！`;
-        const encodedText = encodeURIComponent(lineText);
-        document.getElementById('line-contact-btn').href = `https://line.me/ti/p/~${YOUR_LINE_ID}?text=${encodedText}`;
     }
 </script>
 
