@@ -108,7 +108,7 @@
         <div class="grid grid-cols-2 gap-4 h-56">
             <div onclick="saveAndNext('v4', 'short', 'screen-q5')" class="choice-card flex flex-col items-center justify-center p-4 bg-white border-2 border-gray-200 rounded-2xl hover:border-gray-800 hover:bg-gray-50 shadow-sm text-center">
                 <span class="text-4xl mb-3">⚠️</span>
-                <span class="font-bold text-gray-800 text-sm">3個月以關<br><span class="text-xs text-red-500 font-normal">防禦力重度失衡</span></span>
+                <span class="font-bold text-gray-800 text-sm">3個月以內<br><span class="text-xs text-red-500 font-normal">防禦力重度失衡</span></span>
                 <span class="text-xs text-gray-400 mt-2 font-mono">← 左選</span>
             </div>
             <div onclick="saveAndNext('v4', 'long', 'screen-q5')" class="choice-card flex flex-col items-center justify-center p-4 bg-white border-2 border-gray-200 rounded-2xl hover:border-gray-800 hover:bg-gray-50 shadow-sm text-center">
@@ -148,7 +148,7 @@
     <div id="screen-form" class="screen flex-col min-h-screen p-6 justify-center">
         <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-8">
             <p class="text-sm text-emerald-800 font-bold mb-1">✅ 初步演算完成</p>
-            <p class="text-xs text-emerald-600">為了精準計算您的「通膨折損率」與「急迫性權重」，請補充以下 2 項參數即可解鎖診斷報告。</p>
+            <p class="text-xs text-emerald-600">為了精準計算您的「通膨折損率」與「急迫性權重」，請補充以下 3 項參數即可解鎖診斷報告。</p>
         </div>
 
         <div class="space-y-5">
@@ -156,9 +156,12 @@
                 <label class="block text-sm font-bold text-gray-700 mb-2">1. 您的實際年齡區間</label>
                 <select id="input-age" class="w-full p-4 border border-gray-300 rounded-xl bg-white focus:outline-none focus:border-gray-800 focus:ring-1 focus:ring-gray-800 appearance-none">
                     <option value="" disabled selected>請選擇...</option>
-                    <option value="20-30">20 - 30 歲</option>
-                    <option value="31-40">31 - 40 歲</option>
-                    <option value="41-50">41 - 50 歲</option>
+                    <option value="<=25">25 歲以下</option>
+                    <option value="26-30">26 - 30 歲</option>
+                    <option value="31-35">31 - 35 歲</option>
+                    <option value="36-40">36 - 40 歲</option>
+                    <option value="41-45">41 - 45 歲</option>
+                    <option value="46-50">46 - 50 歲</option>
                     <option value="51+">51 歲以上</option>
                 </select>
             </div>
@@ -166,9 +169,24 @@
                 <label class="block text-sm font-bold text-gray-700 mb-2">2. 家庭責任狀態</label>
                 <select id="input-family" class="w-full p-4 border border-gray-300 rounded-xl bg-white focus:outline-none focus:border-gray-800 focus:ring-1 focus:ring-gray-800 appearance-none">
                     <option value="" disabled selected>請選擇...</option>
-                    <option value="single">單身 / 無扶養壓力</option>
-                    <option value="married_no_kids">已婚 / 雙薪無子女</option>
-                    <option value="has_kids">三明治族群 (有子女/需奉養父母)</option>
+                    <option value="single_no_dep">單身 / 一人飽全家飽 (無扶養壓力)</option>
+                    <option value="single_with_parents">單身 / 需負擔長輩孝親費或照護</option>
+                    <option value="dink">頂客族 / 已婚雙薪 (無計畫生子)</option>
+                    <option value="married_with_kids">小家庭 / 有子女 (不需負擔長輩)</option>
+                    <option value="sandwich">三明治族群 / 雙重夾擊 (有子女＋需奉養長輩)</option>
+                    <option value="empty_nest">空巢或屆退族 / 子女已成年獨立</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">3. 您的現行職業屬性</label>
+                <select id="input-profession" class="w-full p-4 border border-gray-300 rounded-xl bg-white focus:outline-none focus:border-gray-800 focus:ring-1 focus:ring-gray-800 appearance-none">
+                    <option value="" disabled selected>請選擇...</option>
+                    <option value="admin_gov">內勤 / 行政 / 軍公教人員</option>
+                    <option value="sales_freelance">外勤 / 業務 / 自由工作者 (含外送、接案)</option>
+                    <option value="tech_medical">專業技術 / 科技業 / 醫療人員</option>
+                    <option value="boss_executive">企業主 / 自營商 / 高階主管</option>
+                    <option value="labor_manufacturing">勞動 / 製造 / 物流工程業</option>
+                    <option value="housewife_student">家管 / 待業 / 學生</option>
                 </select>
             </div>
             <button onclick="submitFinal()" class="w-full bg-gray-900 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-black transition-colors mt-4">產生最終診斷報告</button>
@@ -197,7 +215,7 @@
                 <div class="bg-emerald-400 h-2 rounded-full progress-bar-fill" id="progress-bar"></div>
             </div>
             <p class="text-gray-300 text-sm leading-relaxed">
-                🚨 <span class="text-red-400 font-bold">系統安全級距提示：您的現行財務配置存在「隱形通盟折損」與「資產防線暴露」高度風險。</span><br><br>
+                🚨 <span class="text-red-400 font-bold">系統安全級距提示：您的現行財務配置存在「隱形通膨折損」與「資產防線暴露」高度風險。</span><br><br>
                 本網頁現僅開放解鎖 35% 基礎指標。剩餘 65% 機密數據（含資產歸零之精確死亡交叉年份、非自願金流中斷之家庭擊穿點、不作為成本量化圖表），**基於個人資料保護法與金融機敏數據安全機制，目前處於加密鎖定狀態。**
             </p>
         </div>
@@ -237,14 +255,16 @@
     function submitFinal() {
         const age = document.getElementById('input-age').value;
         const family = document.getElementById('input-family').value;
+        const profession = document.getElementById('input-profession').value;
         
-        if(!age || !family) {
+        if(!age || !family || !profession) {
             alert('請完整選擇資料以產生報告');
             return;
         }
         
         userData['age'] = age;
         userData['family'] = family;
+        userData['profession'] = profession;
         
         nextScreen('screen-loading-2');
         
@@ -273,8 +293,8 @@
             }
         }
 
-        if (userData.family === 'has_kids') {
-            persona = "責任焦慮型 (三明治族群)";
+        if (userData.family === 'sandwich' || userData.family === 'married_with_kids' || userData.family === 'single_with_parents') {
+            persona = "責任焦慮型 (高扶養重擔)";
             tag = "🚨 收入中斷危機 / 長照壽險高危急迫";
         }
 
@@ -294,7 +314,7 @@
             }).catch(e => console.error("Data tracking failed"));
         }
 
-        // 2. 重新定義加 LINE 誘餌（包裝成公文式數據索取行為，徹底消除推銷感）
+        // 2. 重新定義加 LINE 誘餌（包裝成公文式數據索取行為）
         const lineText = `系統管理員您好，我已完成財務生存壓力測試（序號編碼確認）。系統判定我的風險型態為「${persona}」，存有資產折損暴露。我需正式索取剩餘 65% 的個人資產存活率折線圖與完整 PDF 審計診斷書。謝謝。`;
         const encodedText = encodeURIComponent(lineText);
         document.getElementById('line-audit-btn').href = `https://line.me/ti/p/Q2L6bdAiqt?text=${encodedText}`;
